@@ -7,67 +7,67 @@
     <ComponentGroup Id="CoreFiles" Directory="SourceBHGDir">
 
       <Component Id="CompBlackHoleActorH" Guid="*">
-        <File Id="BlackHoleActorH" Source="..\..\Source\BlackHoleGame\BlackHoleActor.h" KeyPath="yes" />
+        <File Id="BlackHoleActorH" Source="..\Source\BlackHoleGame\BlackHoleActor.h" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleActorCpp" Guid="*">
-        <File Id="BlackHoleActorCpp" Source="..\..\Source\BlackHoleGame\BlackHoleActor.cpp" KeyPath="yes" />
+        <File Id="BlackHoleActorCpp" Source="..\Source\BlackHoleGame\BlackHoleActor.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleGameH" Guid="*">
-        <File Id="BlackHoleGameH" Source="..\..\Source\BlackHoleGame\BlackHoleGame.h" KeyPath="yes" />
+        <File Id="BlackHoleGameH" Source="..\Source\BlackHoleGame\BlackHoleGame.h" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleGameCpp" Guid="*">
-        <File Id="BlackHoleGameCpp" Source="..\..\Source\BlackHoleGame\BlackHoleGame.cpp" KeyPath="yes" />
+        <File Id="BlackHoleGameCpp" Source="..\Source\BlackHoleGame\BlackHoleGame.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleGameModeH" Guid="*">
-        <File Id="BlackHoleGameModeH" Source="..\..\Source\BlackHoleGame\BlackHoleGameMode.h" KeyPath="yes" />
+        <File Id="BlackHoleGameModeH" Source="..\Source\BlackHoleGame\BlackHoleGameMode.h" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleGameModeCpp" Guid="*">
-        <File Id="BlackHoleGameModeCpp" Source="..\..\Source\BlackHoleGame\BlackHoleGameMode.cpp" KeyPath="yes" />
+        <File Id="BlackHoleGameModeCpp" Source="..\Source\BlackHoleGame\BlackHoleGameMode.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleHUDH" Guid="*">
-        <File Id="BlackHoleHUDH" Source="..\..\Source\BlackHoleGame\BlackHoleHUD.h" KeyPath="yes" />
+        <File Id="BlackHoleHUDH" Source="..\Source\BlackHoleGame\BlackHoleHUD.h" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHoleHUDCpp" Guid="*">
-        <File Id="BlackHoleHUDCpp" Source="..\..\Source\BlackHoleGame\BlackHoleHUD.cpp" KeyPath="yes" />
+        <File Id="BlackHoleHUDCpp" Source="..\Source\BlackHoleGame\BlackHoleHUD.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHolePhysicsH" Guid="*">
-        <File Id="BlackHolePhysicsH" Source="..\..\Source\BlackHoleGame\BlackHolePhysicsComponent.h" KeyPath="yes" />
+        <File Id="BlackHolePhysicsH" Source="..\Source\BlackHoleGame\BlackHolePhysicsComponent.h" KeyPath="yes" />
       </Component>
       <Component Id="CompBlackHolePhysicsCpp" Guid="*">
-        <File Id="BlackHolePhysicsCpp" Source="..\..\Source\BlackHoleGame\BlackHolePhysicsComponent.cpp" KeyPath="yes" />
+        <File Id="BlackHolePhysicsCpp" Source="..\Source\BlackHoleGame\BlackHolePhysicsComponent.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompGraphicsQualityH" Guid="*">
-        <File Id="GraphicsQualityH" Source="..\..\Source\BlackHoleGame\GraphicsQualityManager.h" KeyPath="yes" />
+        <File Id="GraphicsQualityH" Source="..\Source\BlackHoleGame\GraphicsQualityManager.h" KeyPath="yes" />
       </Component>
       <Component Id="CompGraphicsQualityCpp" Guid="*">
-        <File Id="GraphicsQualityCpp" Source="..\..\Source\BlackHoleGame\GraphicsQualityManager.cpp" KeyPath="yes" />
+        <File Id="GraphicsQualityCpp" Source="..\Source\BlackHoleGame\GraphicsQualityManager.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompSpaceEnvironmentH" Guid="*">
-        <File Id="SpaceEnvironmentH" Source="..\..\Source\BlackHoleGame\SpaceEnvironmentActor.h" KeyPath="yes" />
+        <File Id="SpaceEnvironmentH" Source="..\Source\BlackHoleGame\SpaceEnvironmentActor.h" KeyPath="yes" />
       </Component>
       <Component Id="CompSpaceEnvironmentCpp" Guid="*">
-        <File Id="SpaceEnvironmentCpp" Source="..\..\Source\BlackHoleGame\SpaceEnvironmentActor.cpp" KeyPath="yes" />
+        <File Id="SpaceEnvironmentCpp" Source="..\Source\BlackHoleGame\SpaceEnvironmentActor.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompSpaceshipPawnH" Guid="*">
-        <File Id="SpaceshipPawnH" Source="..\..\Source\BlackHoleGame\SpaceshipPawn.h" KeyPath="yes" />
+        <File Id="SpaceshipPawnH" Source="..\Source\BlackHoleGame\SpaceshipPawn.h" KeyPath="yes" />
       </Component>
       <Component Id="CompSpaceshipPawnCpp" Guid="*">
-        <File Id="SpaceshipPawnCpp" Source="..\..\Source\BlackHoleGame\SpaceshipPawn.cpp" KeyPath="yes" />
+        <File Id="SpaceshipPawnCpp" Source="..\Source\BlackHoleGame\SpaceshipPawn.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompTidalForceH" Guid="*">
-        <File Id="TidalForceH" Source="..\..\Source\BlackHoleGame\TidalForceComponent.h" KeyPath="yes" />
+        <File Id="TidalForceH" Source="..\Source\BlackHoleGame\TidalForceComponent.h" KeyPath="yes" />
       </Component>
       <Component Id="CompTidalForceCpp" Guid="*">
-        <File Id="TidalForceCpp" Source="..\..\Source\BlackHoleGame\TidalForceComponent.cpp" KeyPath="yes" />
+        <File Id="TidalForceCpp" Source="..\Source\BlackHoleGame\TidalForceComponent.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompTimeDilationH" Guid="*">
-        <File Id="TimeDilationH" Source="..\..\Source\BlackHoleGame\TimeDilationComponent.h" KeyPath="yes" />
+        <File Id="TimeDilationH" Source="..\Source\BlackHoleGame\TimeDilationComponent.h" KeyPath="yes" />
       </Component>
       <Component Id="CompTimeDilationCpp" Guid="*">
-        <File Id="TimeDilationCpp" Source="..\..\Source\BlackHoleGame\TimeDilationComponent.cpp" KeyPath="yes" />
+        <File Id="TimeDilationCpp" Source="..\Source\BlackHoleGame\TimeDilationComponent.cpp" KeyPath="yes" />
       </Component>
       <Component Id="CompBuildCs" Guid="*">
-        <File Id="BuildCs" Source="..\..\Source\BlackHoleGame\BlackHoleGame.Build.cs" KeyPath="yes" />
+        <File Id="BuildCs" Source="..\Source\BlackHoleGame\BlackHoleGame.Build.cs" KeyPath="yes" />
       </Component>
 
     </ComponentGroup>
@@ -76,16 +76,16 @@
     <ComponentGroup Id="ConfigFiles" Directory="ConfigDir">
 
       <Component Id="CompDefaultEditorPerProjectUserSettings" Guid="*">
-        <File Id="DefaultEditorPerProjectUserSettings" Source="..\..\Config\DefaultEditorPerProjectUserSettings.ini" KeyPath="yes" />
+        <File Id="DefaultEditorPerProjectUserSettings" Source="..\Config\DefaultEditorPerProjectUserSettings.ini" KeyPath="yes" />
       </Component>
       <Component Id="CompDefaultEngine" Guid="*">
-        <File Id="DefaultEngine" Source="..\..\Config\DefaultEngine.ini" KeyPath="yes" />
+        <File Id="DefaultEngine" Source="..\Config\DefaultEngine.ini" KeyPath="yes" />
       </Component>
       <Component Id="CompDefaultGame" Guid="*">
-        <File Id="DefaultGame" Source="..\..\Config\DefaultGame.ini" KeyPath="yes" />
+        <File Id="DefaultGame" Source="..\Config\DefaultGame.ini" KeyPath="yes" />
       </Component>
       <Component Id="CompDefaultInput" Guid="*">
-        <File Id="DefaultInput" Source="..\..\Config\DefaultInput.ini" KeyPath="yes" />
+        <File Id="DefaultInput" Source="..\Config\DefaultInput.ini" KeyPath="yes" />
       </Component>
 
     </ComponentGroup>
@@ -94,13 +94,13 @@
     <ComponentGroup Id="ShaderFiles" Directory="ShadersDir">
 
       <Component Id="CompAccretionDisk" Guid="*">
-        <File Id="AccretionDisk" Source="..\..\Shaders\AccretionDisk.usf" KeyPath="yes" />
+        <File Id="AccretionDisk" Source="..\Shaders\AccretionDisk.usf" KeyPath="yes" />
       </Component>
       <Component Id="CompGravitationalLens" Guid="*">
-        <File Id="GravitationalLens" Source="..\..\Shaders\GravitationalLens.usf" KeyPath="yes" />
+        <File Id="GravitationalLens" Source="..\Shaders\GravitationalLens.usf" KeyPath="yes" />
       </Component>
       <Component Id="CompStarField" Guid="*">
-        <File Id="StarField" Source="..\..\Shaders\StarField.usf" KeyPath="yes" />
+        <File Id="StarField" Source="..\Shaders\StarField.usf" KeyPath="yes" />
       </Component>
 
     </ComponentGroup>
@@ -109,25 +109,25 @@
     <ComponentGroup Id="ContentFiles" Directory="ContentDir">
 
       <Component Id="CompBPSetupReadme" Guid="*">
-        <File Id="BPSetupReadme" Source="..\..\Content\Blueprints\BP_Setup_README.md" KeyPath="yes" />
+        <File Id="BPSetupReadme" Source="..\Content\Blueprints\BP_Setup_README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompMapsReadme" Guid="*">
-        <File Id="MapsReadme" Source="..\..\Content\Maps\Maps_README.md" KeyPath="yes" />
+        <File Id="MapsReadme" Source="..\Content\Maps\Maps_README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompMAccretionDisk" Guid="*">
-        <File Id="MAccretionDisk" Source="..\..\Content\Materials\M_AccretionDisk_README.md" KeyPath="yes" />
+        <File Id="MAccretionDisk" Source="..\Content\Materials\M_AccretionDisk_README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompMBlackHoleLens" Guid="*">
-        <File Id="MBlackHoleLens" Source="..\..\Content\Materials\M_BlackHoleLens_README.md" KeyPath="yes" />
+        <File Id="MBlackHoleLens" Source="..\Content\Materials\M_BlackHoleLens_README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompMShipHull" Guid="*">
-        <File Id="MShipHull" Source="..\..\Content\Materials\M_ShipHull_README.md" KeyPath="yes" />
+        <File Id="MShipHull" Source="..\Content\Materials\M_ShipHull_README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompMSpaceBackground" Guid="*">
-        <File Id="MSpaceBackground" Source="..\..\Content\Materials\M_SpaceBackground_README.md" KeyPath="yes" />
+        <File Id="MSpaceBackground" Source="..\Content\Materials\M_SpaceBackground_README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompNiagaraReadme" Guid="*">
-        <File Id="NiagaraReadme" Source="..\..\Content\Particles\Niagara_README.md" KeyPath="yes" />
+        <File Id="NiagaraReadme" Source="..\Content\Particles\Niagara_README.md" KeyPath="yes" />
       </Component>
 
     </ComponentGroup>
@@ -136,16 +136,16 @@
     <ComponentGroup Id="DocumentationFiles" Directory="INSTALLFOLDER">
 
       <Component Id="CompUproject" Guid="*">
-        <File Id="BlackHoleGameUproject" Source="..\..\BlackHoleGame.uproject" KeyPath="yes" />
+        <File Id="BlackHoleGameUproject" Source="..\BlackHoleGame.uproject" KeyPath="yes" />
       </Component>
       <Component Id="CompReadmeMd" Guid="*">
-        <File Id="ReadmeMd" Source="..\..\README.md" KeyPath="yes" />
+        <File Id="ReadmeMd" Source="..\README.md" KeyPath="yes" />
       </Component>
       <Component Id="CompSetupMd" Guid="*">
-        <File Id="SetupMd" Source="..\..\SETUP.md" KeyPath="yes" />
+        <File Id="SetupMd" Source="..\SETUP.md" KeyPath="yes" />
       </Component>
       <Component Id="CompSetupPs1" Guid="*">
-        <File Id="SetupPs1" Source="..\..\setup_windows.ps1" KeyPath="yes" />
+        <File Id="SetupPs1" Source="..\setup_windows.ps1" KeyPath="yes" />
       </Component>
 
     </ComponentGroup>

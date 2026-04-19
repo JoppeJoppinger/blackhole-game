@@ -25,9 +25,9 @@
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
 
     <!-- License agreement -->
-    <WixVariable Id="WixUILicenseRtf" Value="..\..\LICENSE.rtf" />
-    <WixVariable Id="WixUIBannerBmp" Value="..\..\Resources\banner.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="..\..\Resources\dialog.bmp" />
+    <WixVariable Id="WixUILicenseRtf" Value="..\LICENSE.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="..\Resources\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="..\Resources\dialog.bmp" />
 
     <!-- Feature references -->
     <Feature Id="CoreFeature" Title="Black Hole Game" Level="1">

@@ -33,10 +33,6 @@
           Type="integer"
           Value="1"
           KeyPath="yes" />
-        <util:InternetShortcut
-          Id="DesktopShortcutKeypath"
-          Name="BlackHoleGame"
-          Target="[INSTALLFOLDER]BlackHoleGame.uproject" />
       </Component>
 
       <!-- Start Menu shortcuts -->
@@ -68,7 +64,7 @@
     </ComponentGroup>
 
     <!-- Icon reference -->
-    <Icon Id="BlackHoleGameIcon" SourceFile="..\..\Resources\icon.ico" />
+    <Icon Id="BlackHoleGameIcon" SourceFile="..\Resources\icon.ico" />
 
   </Fragment>
 
