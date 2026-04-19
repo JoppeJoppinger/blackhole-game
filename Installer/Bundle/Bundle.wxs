@@ -7,14 +7,19 @@
           Version="1.0.0.0"
           Manufacturer="JoppeJoppinger"
           UpgradeCode="{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
-          IconSourceFile="..\..\Resources\icon.ico">
+          IconSourceFile="..\Resources\icon.ico">
 
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication
-        LicenseFile="..\..\LICENSE.rtf"
         Theme="hyperlinkLicense"
-        LogoFile="..\..\Resources\logo.png" />
+        LogoFile="..\Resources\logo.png"
+        SuppressOptionsUI="yes">
+        <bal:WixStandardBootstrapperApplicationData />
+      </bal:WixStandardBootstrapperApplication>
     </BootstrapperApplication>
+
+    <!-- License URL shown in bootstrapper (no local RTF needed for Bundle) -->
+    <WixVariable Id="WixStdbaLicenseUrl" Value="https://github.com/JoppeJoppinger/blackhole-game/blob/main/LICENSE.rtf" />
 
     <!-- Detect Git installation -->
     <util:RegistrySearch
@@ -45,7 +50,7 @@
 
     <Chain>
 
-      <!-- 1. Git for Windows (if not already installed) -->
+      <!-- 1. Git for Windows (downloaded on demand) -->
       <ExePackage
         Id="GitForWindows"
         Name="Git for Windows"
@@ -54,12 +59,12 @@
         InstallCondition="NOT GitInstallPath"
         DetectCondition="GitInstallPath"
         DownloadUrl="https://github.com/git-for-windows/git/releases/download/v2.44.0.windows.1/Git-2.44.0-64-bit.exe"
-        InstallArguments="/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=&quot;icons,ext\reg\shellhere,assoc,assoc_sh&quot;"
+        InstallArguments="/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /COMPONENTS=&quot;icons,ext\reg\shellhere,assoc,assoc_sh&quot;"
         UninstallArguments="/VERYSILENT /NORESTART"
         RepairArguments="/VERYSILENT /NORESTART"
         Cache="keep" />
 
-      <!-- 2. Visual C++ 2022 Redistributable x64 -->
+      <!-- 2. Visual C++ 2022 Redistributable x64 (downloaded on demand) -->
       <ExePackage
         Id="VCRedist2022x64"
         Name="Microsoft Visual C++ 2022 Redistributable (x64)"
@@ -73,7 +78,7 @@
         RepairArguments="/repair /quiet /norestart"
         Cache="keep" />
 
-      <!-- 3. Visual Studio 2022 Build Tools (C++ Game workload) -->
+      <!-- 3. Visual Studio 2022 Build Tools (C++ Game workload, downloaded on demand) -->
       <ExePackage
         Id="VSBuildTools2022"
         Name="Visual Studio 2022 Build Tools"
@@ -92,7 +97,7 @@
         Name="Black Hole Game"
         Description="Black Hole Game UE5 project files"
         DisplayName="Black Hole Game 1.0.0"
-        SourceFile="..\Output\BlackHoleGame-1.0.0.msi"
+        SourceFile="Output\BlackHoleGame-1.0.0.msi"
         Visible="yes"
         Cache="keep">
         <MsiProperty Name="INSTALLFOLDER" Value="[InstallFolder]" />
