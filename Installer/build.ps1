@@ -75,16 +75,22 @@ Write-OK "WiX version: $wixVersion"
 # ── Step 2: WiX extensions ───────────────────────────────────────────────────
 Write-Step 'Checking WiX extensions'
 
-$extensions = @('WixToolset.Bal.wixext','WixToolset.UI.wixext','WixToolset.Util.wixext')
+# Pin extensions to v4.x to match WiX v4 (v7 extensions are incompatible)
+$extensions = @(
+    'WixToolset.Bal.wixext/4.0.5',
+    'WixToolset.UI.wixext/4.0.5',
+    'WixToolset.Util.wixext/4.0.5'
+)
 
-foreach ($ext in $extensions) {
+foreach ($extFull in $extensions) {
+    $extName = $extFull.Split('/')[0]
     $extList = (& wix extension list 2>$null) -join ' '
-    if ($extList -notmatch [regex]::Escape($ext)) {
-        Write-Warn "$ext not installed -> adding..."
-        & wix extension add $ext
-        if ($LASTEXITCODE -ne 0) { Write-Fail "Failed to add: $ext"; exit 1 }
+    if ($extList -notmatch [regex]::Escape($extName)) {
+        Write-Warn "$extName not installed -> adding v4.0.5..."
+        & wix extension add $extFull
+        if ($LASTEXITCODE -ne 0) { Write-Fail "Failed to add: $extFull"; exit 1 }
     }
-    Write-OK $ext
+    Write-OK $extName
 }
 
 # ── Step 3: Resources ─────────────────────────────────────────────────────────
@@ -217,8 +223,8 @@ try {
         'Product\RegistryEntries.wxs',
         'Product\EnvironmentVariables.wxs',
         'UI\CustomUI.wxs',
-        '-ext', 'WixToolset.UI.wixext',
-        '-ext', 'WixToolset.Util.wixext',
+        '-ext', 'WixToolset.UI.wixext/4.0.5',
+        '-ext', 'WixToolset.Util.wixext/4.0.5',
         '-o', $msiOutput
     )
     Write-Host "    Running: wix $($wixArgs -join ' ')" -ForegroundColor DarkGray
@@ -240,8 +246,8 @@ if (-not $SkipBundle) {
         $bundleArgs = @(
             'build',
             'Bundle\Bundle.wxs',
-            '-ext', 'WixToolset.Bal.wixext',
-            '-ext', 'WixToolset.Util.wixext',
+            '-ext', 'WixToolset.Bal.wixext/4.0.5',
+            '-ext', 'WixToolset.Util.wixext/4.0.5',
             '-o', $exeOutput
         )
         Write-Host "    Running: wix $($bundleArgs -join ' ')" -ForegroundColor DarkGray
