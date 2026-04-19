@@ -223,8 +223,8 @@ try {
         'Product\RegistryEntries.wxs',
         'Product\EnvironmentVariables.wxs',
         'UI\CustomUI.wxs',
-        '-ext', 'WixToolset.UI.wixext/4.0.5',
-        '-ext', 'WixToolset.Util.wixext/4.0.5',
+        '-ext', 'WixToolset.UI.wixext',
+        '-ext', 'WixToolset.Util.wixext',
         '-o', $msiOutput
     )
     Write-Host "    Running: wix $($wixArgs -join ' ')" -ForegroundColor DarkGray
@@ -246,8 +246,8 @@ if (-not $SkipBundle) {
         $bundleArgs = @(
             'build',
             'Bundle\Bundle.wxs',
-            '-ext', 'WixToolset.Bal.wixext/4.0.5',
-            '-ext', 'WixToolset.Util.wixext/4.0.5',
+            '-ext', 'WixToolset.Bal.wixext',
+            '-ext', 'WixToolset.Util.wixext',
             '-o', $exeOutput
         )
         Write-Host "    Running: wix $($bundleArgs -join ' ')" -ForegroundColor DarkGray
