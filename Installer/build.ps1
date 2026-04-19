@@ -70,7 +70,7 @@ $extensions = @('WixToolset.Bal.wixext','WixToolset.UI.wixext','WixToolset.Util.
 foreach ($ext in $extensions) {
     $extList = (& wix extension list 2>$null) -join ' '
     if ($extList -notmatch [regex]::Escape($ext)) {
-        Write-Warn "$ext not installed — adding..."
+        Write-Warn "$ext not installed -> adding..."
         & wix extension add $ext
         if ($LASTEXITCODE -ne 0) { Write-Fail "Failed to add: $ext"; exit 1 }
     }
@@ -90,7 +90,7 @@ if (-not (Test-Path $resourcesDir)) {
 # Placeholder icon.ico
 $iconPath = Join-Path $resourcesDir 'icon.ico'
 if (-not (Test-Path $iconPath)) {
-    Write-Warn 'icon.ico not found — creating minimal placeholder (replace with real 256x256 ICO)'
+    Write-Warn 'icon.ico not found -> creating minimal placeholder (replace with real 256x256 ICO)'
     [byte[]]$icoBytes = @(
         0x00,0x00, 0x01,0x00, 0x01,0x00,
         0x01, 0x01, 0x00, 0x00,
@@ -115,7 +115,7 @@ if (-not (Test-Path $iconPath)) {
 # Placeholder logo.png
 $logoPath = Join-Path $resourcesDir 'logo.png'
 if (-not (Test-Path $logoPath)) {
-    Write-Warn 'logo.png not found — creating minimal placeholder (replace with 480x70 branded PNG)'
+    Write-Warn 'logo.png not found -> creating minimal placeholder (replace with 480x70 branded PNG)'
     [byte[]]$pngBytes = @(
         0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,
         0x00,0x00,0x00,0x0D,0x49,0x48,0x44,0x52,
