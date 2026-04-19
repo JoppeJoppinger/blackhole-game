@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Git.wxs — Git for Windows prerequisite definition (informational fragment).
+  The actual ExePackage is defined in Bundle/Bundle.wxs for the bootstrapper chain.
+  This file documents the detection and download strategy.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Fragment>
+
+    <!--
+      Git detection search (also referenced in Bundle.wxs).
+      Searches for Git installation via the GitForWindows registry key.
+
+      Detection logic:
+        HKLM\SOFTWARE\GitForWindows\InstallPath  (64-bit Git installer)
+        HKLM\SOFTWARE\WOW6432Node\GitForWindows\InstallPath  (32-bit fallback)
+
+      Download URL:
+        https://github.com/git-for-windows/git/releases/download/v2.44.0.windows.1/Git-2.44.0-64-bit.exe
+
+      Silent install arguments:
+        /VERYSILENT /NORESTART /NOCANCEL /SP-
+        /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS
+        /COMPONENTS="icons,ext\reg\shellhere,assoc,assoc_sh"
+
+      This installs Git with shell integration and file associations.
+    -->
+
+    <!-- Property for standalone MSI use (detect Git via PATH) -->
+    <Property Id="GIT_INSTALLED">
+      <RegistrySearch
+        Id="GitInstalledSearch"
+        Root="HKLM"
+        Key="SOFTWARE\GitForWindows"
+        Name="InstallPath"
+        Type="raw" />
+    </Property>
+
+  </Fragment>
+
+</Wix>

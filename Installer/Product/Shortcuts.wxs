@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Fragment>
+
+    <!-- Detect UE5 install path from registry -->
+    <Property Id="UEINSTALLPATH">
+      <RegistrySearch
+        Id="UE5InstallPathSearch"
+        Root="HKLM"
+        Key="SOFTWARE\EpicGames\Unreal Engine\5.3"
+        Name="InstalledDirectory"
+        Type="raw" />
+    </Property>
+
+    <ComponentGroup Id="ShortcutComponents">
+
+      <!-- Desktop shortcut component (stored in INSTALLFOLDER so it can reference files) -->
+      <Component Id="CompDesktopShortcut" Directory="DesktopFolder" Guid="{C3D4E5F6-A7B8-9012-CDEF-123456789012}">
+        <Shortcut
+          Id="DesktopShortcut"
+          Name="Black Hole Game"
+          Description="Open Black Hole Game in Unreal Engine 5"
+          Target="[UEINSTALLPATH]Engine\Binaries\Win64\UnrealEditor.exe"
+          Arguments="&quot;[INSTALLFOLDER]BlackHoleGame.uproject&quot;"
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="BlackHoleGameIcon" />
+        <RegistryValue
+          Root="HKCU"
+          Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
+          Name="DesktopShortcut"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+        <util:InternetShortcut
+          Id="DesktopShortcutKeypath"
+          Name="BlackHoleGame"
+          Target="[INSTALLFOLDER]BlackHoleGame.uproject" />
+      </Component>
+
+      <!-- Start Menu shortcuts -->
+      <Component Id="CompStartMenuShortcuts" Directory="ApplicationProgramsFolder" Guid="{D4E5F6A7-B8C9-0123-DEF0-234567890123}">
+        <Shortcut
+          Id="StartMenuOpenUE5"
+          Name="Open in UE5"
+          Description="Open Black Hole Game project in Unreal Engine 5"
+          Target="[UEINSTALLPATH]Engine\Binaries\Win64\UnrealEditor.exe"
+          Arguments="&quot;[INSTALLFOLDER]BlackHoleGame.uproject&quot;"
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="BlackHoleGameIcon" />
+        <Shortcut
+          Id="StartMenuUninstall"
+          Name="Uninstall Black Hole Game"
+          Description="Remove Black Hole Game from this computer"
+          Target="[SystemFolder]msiexec.exe"
+          Arguments="/x [ProductCode]" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue
+          Root="HKCU"
+          Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
+          Name="StartMenuShortcuts"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+
+    </ComponentGroup>
+
+    <!-- Icon reference -->
+    <Icon Id="BlackHoleGameIcon" SourceFile="..\..\Resources\icon.ico" />
+
+  </Fragment>
+
+</Wix>

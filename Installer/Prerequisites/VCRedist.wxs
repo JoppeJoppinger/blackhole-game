@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  VCRedist.wxs — Visual C++ 2022 Redistributable prerequisite definition.
+  The actual ExePackage is defined in Bundle/Bundle.wxs for the bootstrapper chain.
+  This file documents the detection and download strategy.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Fragment>
+
+    <!--
+      Visual C++ 2022 Redistributable (x64) detection.
+
+      Detection registry key:
+        HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64\Installed = 1
+
+      Also check version:
+        HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64\Version >= 14.36
+
+      Download URL (latest):
+        https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+      Silent install arguments:
+        /install /quiet /norestart
+
+      Repair arguments:
+        /repair /quiet /norestart
+
+      Uninstall arguments:
+        /uninstall /quiet /norestart
+
+      Note: The VCRedist installer is safe to run even if already installed.
+      The installer detects the current version and only upgrades if needed.
+    -->
+
+    <!-- Property for standalone MSI use -->
+    <Property Id="VCREDIST2022_INSTALLED">
+      <RegistrySearch
+        Id="VCRedist2022Search"
+        Root="HKLM"
+        Key="SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64"
+        Name="Installed"
+        Type="raw" />
+    </Property>
+
+    <Property Id="VCREDIST2022_VERSION">
+      <RegistrySearch
+        Id="VCRedist2022VersionSearch"
+        Root="HKLM"
+        Key="SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X64"
+        Name="Version"
+        Type="raw" />
+    </Property>
+
+  </Fragment>
+
+</Wix>

@@ -1,0 +1,30 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+
+  <PropertyGroup>
+    <OutputName>BlackHoleGame</OutputName>
+    <OutputType>Package</OutputType>
+    <Version>1.0.0.0</Version>
+    <Cultures>en-US</Cultures>
+    <SuppressIces>ICE69</SuppressIces>
+  </PropertyGroup>
+
+  <!-- MSI source files -->
+  <ItemGroup>
+    <Compile Include="Product\Product.wxs" />
+    <Compile Include="Product\Directories.wxs" />
+    <Compile Include="Product\Features.wxs" />
+    <Compile Include="Product\Shortcuts.wxs" />
+    <Compile Include="Product\RegistryEntries.wxs" />
+    <Compile Include="Product\EnvironmentVariables.wxs" />
+    <Compile Include="UI\CustomUI.wxs" />
+    <Compile Include="Prerequisites\Git.wxs" />
+    <Compile Include="Prerequisites\VCRedist.wxs" />
+  </ItemGroup>
+
+  <!-- WiX Extensions -->
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.5" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.5" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Fragment>
+
+    <ComponentGroup Id="RegistryComponents" Directory="INSTALLFOLDER">
+
+      <Component Id="CompRegistryEntries" Guid="{E5F6A7B8-C9D0-1234-EF01-345678901234}">
+
+        <!-- Install path -->
+        <RegistryValue
+          Root="HKLM"
+          Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
+          Name="InstallPath"
+          Type="string"
+          Value="[INSTALLFOLDER]"
+          KeyPath="yes" />
+
+        <!-- Version -->
+        <RegistryValue
+          Root="HKLM"
+          Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
+          Name="Version"
+          Type="string"
+          Value="1.0.0.0" />
+
+        <!-- UE5 install path (as detected during install) -->
+        <RegistryValue
+          Root="HKLM"
+          Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
+          Name="UE5Path"
+          Type="string"
+          Value="[UEINSTALLPATH]" />
+
+        <!-- App path for shell integration -->
+        <RegistryValue
+          Root="HKLM"
+          Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\BlackHoleGame.uproject"
+          Name=""
+          Type="string"
+          Value="[INSTALLFOLDER]BlackHoleGame.uproject" />
+
+        <RegistryValue
+          Root="HKLM"
+          Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\BlackHoleGame.uproject"
+          Name="Path"
+          Type="string"
+          Value="[INSTALLFOLDER]" />
+
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+
+</Wix>

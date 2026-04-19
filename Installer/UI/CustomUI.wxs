@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CustomUI.wxs — Custom installer UI based on WixUI_InstallDir.
+  Customizes the welcome/finish bitmaps and banner to match Black Hole Game branding.
+
+  Requirements:
+  - Resources\banner.bmp  (500x63 px) — shown at top of most dialog pages
+  - Resources\dialog.bmp  (493x312 px) — shown on Welcome and Finish pages
+  - Resources\logo.png    (480x70 px) — used by the Bundle bootstrapper
+
+  These must be replaced with real assets before building for release.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Fragment>
+
+    <!--
+      Reference the built-in WixUI_InstallDir dialog set.
+      The WixVariable overrides (banner/dialog bitmaps, license RTF) are set in Product.wxs.
+    -->
+    <ui:WixUI Id="WixUI_InstallDir" />
+
+  </Fragment>
+
+</Wix>

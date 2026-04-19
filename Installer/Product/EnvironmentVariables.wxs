@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Fragment>
+
+    <!--
+      Optional environment variables component.
+      Add BLACKHOLEGAME_PATH so scripts and tools can locate the install.
+    -->
+    <ComponentGroup Id="EnvironmentVariableComponents" Directory="INSTALLFOLDER">
+
+      <Component Id="CompEnvVars" Guid="{F6A7B8C9-D0E1-2345-F012-456789012345}">
+
+        <Environment
+          Id="EnvBlackHoleGamePath"
+          Name="BLACKHOLEGAME_PATH"
+          Value="[INSTALLFOLDER]"
+          Permanent="no"
+          Part="last"
+          Action="set"
+          System="yes" />
+
+        <RegistryValue
+          Root="HKLM"
+          Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
+          Name="EnvVarsInstalled"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+
+</Wix>

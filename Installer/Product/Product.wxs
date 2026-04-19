@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package
+    Name="Black Hole Game"
+    Manufacturer="JoppeJoppinger"
+    Version="1.0.0.0"
+    Language="1033"
+    ProductCode="*"
+    UpgradeCode="{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
+    Scope="perMachine"
+    InstallerVersion="500">
+
+    <!-- Upgrade handling -->
+    <MajorUpgrade
+      AllowSameVersionUpgrades="no"
+      DowngradeErrorMessage="A newer version of Black Hole Game is already installed. Please uninstall it before installing this version." />
+
+    <!-- Media / cabinet -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- UI -->
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <!-- License agreement -->
+    <WixVariable Id="WixUILicenseRtf" Value="..\..\LICENSE.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="..\..\Resources\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="..\..\Resources\dialog.bmp" />
+
+    <!-- Feature references -->
+    <Feature Id="CoreFeature" Title="Black Hole Game" Level="1">
+      <ComponentGroupRef Id="CoreFiles" />
+      <ComponentGroupRef Id="ConfigFiles" />
+      <ComponentGroupRef Id="ShaderFiles" />
+      <ComponentGroupRef Id="ContentFiles" />
+    </Feature>
+
+    <Feature Id="ShortcutsFeature" Title="Shortcuts" Level="1">
+      <ComponentGroupRef Id="ShortcutComponents" />
+    </Feature>
+
+    <Feature Id="DocumentationFeature" Title="Documentation" Level="1">
+      <ComponentGroupRef Id="DocumentationFiles" />
+    </Feature>
+
+  </Package>
+</Wix>
