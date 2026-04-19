@@ -4,12 +4,12 @@
   <Fragment>
 
     <!-- Root target directory -->
-    <StandardDirectory Id="TARGETDIR" Name="SourceDir">
+    <StandardDirectory Id="TARGETDIR">
 
       <!-- Program Files -->
       <StandardDirectory Id="ProgramFilesFolder">
         <Directory Id="INSTALLFOLDER" Name="BlackHoleGame">
-          <Directory Id="SourceDir" Name="Source">
+          <Directory Id="SourceDir_" Name="Source">
             <Directory Id="SourceBHGDir" Name="BlackHoleGame" />
           </Directory>
           <Directory Id="ConfigDir" Name="Config" />

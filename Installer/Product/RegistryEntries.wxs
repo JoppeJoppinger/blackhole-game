@@ -24,7 +24,7 @@
           Type="string"
           Value="1.0.0.0" />
 
-        <!-- UE5 install path (as detected during install) -->
+        <!-- UE5 install path -->
         <RegistryValue
           Root="HKLM"
           Key="SOFTWARE\JoppeJoppinger\BlackHoleGame"
@@ -32,11 +32,10 @@
           Type="string"
           Value="[UEINSTALLPATH]" />
 
-        <!-- App path for shell integration -->
+        <!-- App path for shell integration (default value = no Name attribute) -->
         <RegistryValue
           Root="HKLM"
           Key="SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\BlackHoleGame.uproject"
-          Name=""
           Type="string"
           Value="[INSTALLFOLDER]BlackHoleGame.uproject" />
 
