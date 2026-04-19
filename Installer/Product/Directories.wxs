@@ -3,35 +3,30 @@
 
   <Fragment>
 
-    <!-- Root target directory -->
-    <StandardDirectory Id="TARGETDIR">
-
-      <!-- Program Files -->
-      <StandardDirectory Id="ProgramFilesFolder">
-        <Directory Id="INSTALLFOLDER" Name="BlackHoleGame">
-          <Directory Id="SourceDir_" Name="Source">
-            <Directory Id="SourceBHGDir" Name="BlackHoleGame" />
-          </Directory>
-          <Directory Id="ConfigDir" Name="Config" />
-          <Directory Id="ShadersDir" Name="Shaders" />
-          <Directory Id="ContentDir" Name="Content">
-            <Directory Id="ContentBlueprintsDir" Name="Blueprints" />
-            <Directory Id="ContentMapsDir" Name="Maps" />
-            <Directory Id="ContentMaterialsDir" Name="Materials" />
-            <Directory Id="ContentParticlesDir" Name="Particles" />
-          </Directory>
+    <!-- Program Files: custom install directory -->
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="BlackHoleGame">
+        <Directory Id="SourceDir_" Name="Source">
+          <Directory Id="SourceBHGDir" Name="BlackHoleGame" />
         </Directory>
-      </StandardDirectory>
-
-      <!-- Start Menu -->
-      <StandardDirectory Id="ProgramMenuFolder">
-        <Directory Id="ApplicationProgramsFolder" Name="Black Hole Game" />
-      </StandardDirectory>
-
-      <!-- Desktop -->
-      <StandardDirectory Id="DesktopFolder" />
-
+        <Directory Id="ConfigDir" Name="Config" />
+        <Directory Id="ShadersDir" Name="Shaders" />
+        <Directory Id="ContentDir" Name="Content">
+          <Directory Id="ContentBlueprintsDir" Name="Blueprints" />
+          <Directory Id="ContentMapsDir" Name="Maps" />
+          <Directory Id="ContentMaterialsDir" Name="Materials" />
+          <Directory Id="ContentParticlesDir" Name="Particles" />
+        </Directory>
+      </Directory>
     </StandardDirectory>
+
+    <!-- Start Menu -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Black Hole Game" />
+    </StandardDirectory>
+
+    <!-- Desktop -->
+    <StandardDirectory Id="DesktopFolder" />
 
   </Fragment>
 
