@@ -47,15 +47,25 @@ Write-Step 'Checking WiX Toolset v4'
 $wixVersion = $null
 try { $wixVersion = & wix --version 2>$null } catch {}
 
+# WiX v5+ requires paid OSMF EULA -> force v4 (last free/OSS release)
+$needsInstall = $false
 if (-not $wixVersion) {
-    Write-Warn 'WiX Toolset not found. Installing via dotnet tool...'
+    $needsInstall = $true
+} elseif ($wixVersion -notmatch '^4[.]') {
+    Write-Warn "WiX $wixVersion requires paid OSMF license. Downgrading to v4 (free)..."
+    & dotnet tool uninstall --global wix 2>$null
+    $needsInstall = $true
+}
+
+if ($needsInstall) {
+    Write-Warn 'Installing WiX v4 (free, open-source)...'
     try { & dotnet --version | Out-Null }
     catch {
         Write-Fail '.NET SDK not found. Install from https://dotnet.microsoft.com/download'
         exit 1
     }
-    & dotnet tool install --global wix
-    if ($LASTEXITCODE -ne 0) { Write-Fail 'Failed to install WiX.'; exit 1 }
+    & dotnet tool install --global wix --version '4.*'
+    if ($LASTEXITCODE -ne 0) { Write-Fail 'Failed to install WiX v4.'; exit 1 }
     $env:PATH = [System.Environment]::GetEnvironmentVariable('PATH','User') + ';' + $env:PATH
     $wixVersion = & wix --version 2>$null
 }
