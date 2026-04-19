@@ -72,8 +72,16 @@ if ($needsInstall) {
 
 Write-OK "WiX version: $wixVersion"
 
-# ── Step 2: WiX extensions ───────────────────────────────────────────────────
-Write-Step 'Checking WiX extensions'
+# ── Step 2: Clear local .wix cache (may contain wrong extension versions) ───────
+Write-Step 'Clearing local WiX extension cache'
+$localWix = Join-Path $InstallerDir '.wix'
+if (Test-Path $localWix) {
+    Remove-Item $localWix -Recurse -Force
+    Write-OK 'Local .wix cache cleared'
+}
+
+# ── Step 3: WiX extensions ───────────────────────────────────────────────────
+Write-Step 'Installing WiX extensions (v4.0.5)'
 
 # Pin extensions to v4.x to match WiX v4 (v7 extensions are incompatible)
 $extensions = @(
@@ -84,11 +92,13 @@ $extensions = @(
 
 foreach ($extFull in $extensions) {
     $extName = $extFull.Split('/')[0]
-    $extList = (& wix extension list 2>$null) -join ' '
+    Write-Host "    Adding $extFull..." -ForegroundColor DarkGray
+    & wix extension add $extFull --global 2>$null
+    # Ignore exit code if already installed; verify with list
+    $extList = (& wix extension list --global 2>$null) -join ' '
     if ($extList -notmatch [regex]::Escape($extName)) {
-        Write-Warn "$extName not installed -> adding v4.0.5..."
-        & wix extension add $extFull
-        if ($LASTEXITCODE -ne 0) { Write-Fail "Failed to add: $extFull"; exit 1 }
+        Write-Fail "Extension not available after add: $extName"
+        exit 1
     }
     Write-OK $extName
 }
@@ -223,8 +233,8 @@ try {
         'Product\RegistryEntries.wxs',
         'Product\EnvironmentVariables.wxs',
         'UI\CustomUI.wxs',
-        '-ext', 'WixToolset.UI.wixext',
-        '-ext', 'WixToolset.Util.wixext',
+        '--global', '-ext', 'WixToolset.UI.wixext',
+        '--global', '-ext', 'WixToolset.Util.wixext',
         '-o', $msiOutput
     )
     Write-Host "    Running: wix $($wixArgs -join ' ')" -ForegroundColor DarkGray
@@ -246,8 +256,8 @@ if (-not $SkipBundle) {
         $bundleArgs = @(
             'build',
             'Bundle\Bundle.wxs',
-            '-ext', 'WixToolset.Bal.wixext',
-            '-ext', 'WixToolset.Util.wixext',
+            '--global', '-ext', 'WixToolset.Bal.wixext',
+            '--global', '-ext', 'WixToolset.Util.wixext',
             '-o', $exeOutput
         )
         Write-Host "    Running: wix $($bundleArgs -join ' ')" -ForegroundColor DarkGray
