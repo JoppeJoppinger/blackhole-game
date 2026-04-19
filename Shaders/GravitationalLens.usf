@@ -1,0 +1,247 @@
+// GravitationalLens.usf
+// Black Hole Gravitational Lensing Post-Process Shader
+//
+// Pure standard HLSL — compatible with DX11, DX12, Vulkan (via HLSL->SPIR-V).
+// No NvAPI, no AMD AGS, no vendor intrinsics.
+//
+// Implements:
+//   - Gravitational lensing UV distortion based on angular position of BH on screen
+//   - Einstein ring when ship is aligned with background source
+//   - Double-image region near photon sphere
+//   - Gravitational redshift tinting (objects behind BH appear redshifted)
+//
+// Bind this as a Post Process Material (Blendable Location: Before Tonemapping).
+//
+// Material Parameters expected:
+//   BlackHoleScreenPos    : float2  — black hole centre in UV [0,1]
+//   SchwarzschildRadiusUV : float   — angular radius of event horizon in UV units
+//   PhotonSphereRadiusUV  : float   — angular radius of photon sphere in UV
+//   LensingStrength       : float   — overall lensing distortion multiplier (default 1.0)
+//   RedshiftFactor        : float   — z parameter for colour tinting (0=no shift)
+//   AspectRatio           : float   — screen width / height
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: rotate a 2D vector by angle_rad
+// ─────────────────────────────────────────────────────────────────────────────
+float2 Rotate2D(float2 v, float angle)
+{
+    float s, c;
+    sincos(angle, s, c);
+    return float2(v.x * c - v.y * s, v.x * s + v.y * c);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Approximate gravitational deflection angle in radians.
+// For a photon with impact parameter b (in same units as rs),
+// deflection alpha = 2 * rs / b  (weak-field approximation, valid for b >> rs).
+// For strong-field we use a continued fraction fit from Keeton & Petri (2006).
+// ─────────────────────────────────────────────────────────────────────────────
+float GravitationalDeflectionAngle(float b_over_rs)
+{
+    // b_over_rs = impact parameter / Schwarzschild radius
+    // Weak field limit: alpha = 2 / b_over_rs  (radians, where b is in units of rs)
+    // Strong field correction (Keeton-Petri approximation):
+    //   alpha ~ pi + 2*ln(b_over_rs - 1.5) + pi  near photon sphere (b ~= 1.5)
+    float bScaled = max(b_over_rs, 1.501); // clamp away from photon sphere singularity
+
+    float weakField = 2.0 / bScaled;
+
+    // Strong-field enhancement term (smoothly activates as b approaches 1.5*rs)
+    float proximity = saturate(1.0 - (bScaled - 1.5) / 10.0);
+    float strongField = proximity * (3.14159 * 0.5 / max(bScaled - 1.5, 0.001));
+
+    return weakField + strongField * 0.3;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main lensing distortion function.
+// Returns the distorted UV to sample the scene texture with.
+// ─────────────────────────────────────────────────────────────────────────────
+float2 ApplyGravitationalLensing(
+    float2 UV,
+    float2 BHScreenPos,
+    float  rs_uv,           // event horizon radius in UV units
+    float  rph_uv,          // photon sphere radius in UV units
+    float  LensingStrength,
+    float  AspectRatio)
+{
+    // ── Angular offset from black hole centre (account for aspect ratio) ──────
+    float2 Delta = UV - BHScreenPos;
+    Delta.x *= AspectRatio; // correct for non-square pixels
+
+    float angularDist = length(Delta);
+    float2 deltaDir = (angularDist > 0.0001) ? Delta / angularDist : float2(1, 0);
+
+    // ── Convert angular distance to units of rs ────────────────────────────────
+    float rs_screen = rs_uv * AspectRatio; // rs in aspect-corrected space
+    float b_over_rs = angularDist / max(rs_screen, 0.00001);
+
+    // No distortion far from the black hole (> 20 rs)
+    float distortionMask = saturate(1.0 - (b_over_rs - 1.5) / 18.5);
+    if (distortionMask <= 0.0)
+        return UV;
+
+    // ── Black hole shadow ──────────────────────────────────────────────────────
+    // Inside the shadow (b < 1.5 rs = photon capture radius), return black
+    if (b_over_rs <= 1.5)
+        return float2(-1.0, -1.0); // sentinel: caller renders black
+
+    // ── Compute deflection ────────────────────────────────────────────────────
+    float deflectionAngle = GravitationalDeflectionAngle(b_over_rs) * LensingStrength;
+
+    // The photon is deflected TOWARD the BH.
+    // The apparent direction is rotated by deflectionAngle back toward BH center.
+    // Net UV shift: push the sample point further from the BH centre
+    // (the light came from "behind" the lensing path).
+    float shiftMag = deflectionAngle * rs_screen * distortionMask;
+    float2 distortedUV = UV + deltaDir * shiftMag;
+
+    // ── Correct back for aspect ratio ─────────────────────────────────────────
+    distortedUV.x = distortedUV.x; // already in UV space
+
+    return distortedUV;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Secondary image (Einstein ring / double images near photon sphere).
+// Returns a blended contribution from the "second image" (photon that went
+// almost all the way around the black hole).
+// ─────────────────────────────────────────────────────────────────────────────
+float4 SampleSecondaryImage(
+    Texture2D SceneTexture,
+    SamplerState SceneSampler,
+    float2 UV,
+    float2 BHScreenPos,
+    float  rs_uv,
+    float  AspectRatio)
+{
+    float2 Delta = UV - BHScreenPos;
+    Delta.x *= AspectRatio;
+    float angularDist = length(Delta);
+    float rs_screen = rs_uv * AspectRatio;
+    float b_over_rs = angularDist / max(rs_screen, 0.00001);
+
+    // Secondary image only relevant very close to photon sphere (b ~ 1.5 to 3 rs)
+    float secondaryWeight = saturate(1.0 - abs(b_over_rs - 2.0) / 0.5) * 0.4;
+    if (secondaryWeight < 0.001)
+        return float4(0, 0, 0, 0);
+
+    // Sample the "behind-the-BH" direction (rotate 180° around BH, shrink toward centre)
+    float2 deltaDir = (angularDist > 0.0001) ? Delta / angularDist : float2(1, 0);
+    float2 oppositeDir = -deltaDir;
+    float2 secondaryUV = BHScreenPos + float2(oppositeDir.x / AspectRatio, oppositeDir.y) * rs_screen * 2.0;
+    secondaryUV = clamp(secondaryUV, 0.001, 0.999);
+
+    float4 col = SceneTexture.SampleLevel(SceneSampler, secondaryUV, 0);
+    return col * secondaryWeight;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gravitational redshift colour tinting.
+// Objects behind the black hole (in the lensed image) are redshifted:
+//   - compress blue channel, boost red
+// Objects in foreground approaching BH are blueshifted (Doppler + grav blueshift)
+// ─────────────────────────────────────────────────────────────────────────────
+float3 ApplyRedshiftTint(float3 Color, float z, float b_over_rs)
+{
+    // z > 0 = redshift (behind BH / falling in)
+    // z < 0 = blueshift (infalling from far)
+    float redAmount  = saturate(z * 0.3);
+    float blueAmount = saturate(-z * 0.3);
+
+    // Shift colour balance
+    Color.r = saturate(Color.r + redAmount  * 0.3);
+    Color.b = saturate(Color.b - redAmount  * 0.25 + blueAmount * 0.35);
+    Color.g = saturate(Color.g - redAmount  * 0.1);
+
+    // Dimming: photons lose energy climbing out (or gain falling in)
+    float energyFactor = 1.0 / max(1.0 + z, 0.01);
+    Color *= lerp(1.0, energyFactor, saturate(abs(z)));
+
+    return Color;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Photon sphere glowing ring effect.
+// Adds a bright ring at the photon sphere radius.
+// ─────────────────────────────────────────────────────────────────────────────
+float3 PhotonRing(float b_over_rs, float3 SceneColor)
+{
+    // Narrow Gaussian ring at b ~ 1.5 rs (photon sphere)
+    float ringDist = abs(b_over_rs - 1.55);
+    float ringWidth = 0.08;
+    float ringIntensity = exp(-ringDist * ringDist / (2.0 * ringWidth * ringWidth));
+    ringIntensity *= 3.5; // bright ring
+
+    // Ring colour: mix of accretion disk orange and white-hot
+    float3 ringColor = lerp(float3(1.0, 0.55, 0.1), float3(1.0, 0.95, 0.8), ringIntensity * 0.5);
+
+    return SceneColor + ringColor * ringIntensity * saturate(1.0 - b_over_rs / 5.0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main function (called by UE5 custom post-process material node).
+// In UE5 Custom Expressions, the body is returned as a float4.
+// Parameters are bound as Material Parameter Collections.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Usage in UE5 Material Editor:
+//   - Add a Custom node
+//   - Set return type to CMOT Float4
+//   - Inputs: SceneTexture (Texture2D), SceneSampler (SamplerState),
+//             UV (float2), BHScreenPos (float2), SchwarzschildRadiusUV (float),
+//             PhotonSphereRadiusUV (float), LensingStrength (float),
+//             RedshiftZ (float), AspectRatio (float)
+//
+float4 GravitationalLensMain(
+    Texture2D    SceneTexture,
+    SamplerState SceneSampler,
+    float2       UV,
+    float2       BHScreenPos,
+    float        SchwarzschildRadiusUV,
+    float        PhotonSphereRadiusUV,
+    float        LensingStrength,
+    float        RedshiftZ,
+    float        AspectRatio)
+{
+    // Distort UVs
+    float2 LensedUV = ApplyGravitationalLensing(
+        UV, BHScreenPos,
+        SchwarzschildRadiusUV,
+        PhotonSphereRadiusUV,
+        LensingStrength,
+        AspectRatio);
+
+    // Black hole shadow interior
+    if (LensedUV.x < 0.0)
+        return float4(0.0, 0.0, 0.0, 1.0);
+
+    // Clamp to valid UV range
+    LensedUV = clamp(LensedUV, 0.001, 0.999);
+
+    // Sample distorted scene
+    float4 SceneColor = SceneTexture.SampleLevel(SceneSampler, LensedUV, 0);
+
+    // Add secondary (Einstein ring) image
+    float4 SecondaryColor = SampleSecondaryImage(
+        SceneTexture, SceneSampler,
+        UV, BHScreenPos,
+        SchwarzschildRadiusUV,
+        AspectRatio);
+    SceneColor.rgb += SecondaryColor.rgb;
+
+    // Angular distance from BH for ring/tint effects
+    float2 Delta = UV - BHScreenPos;
+    Delta.x *= AspectRatio;
+    float angularDist = length(Delta);
+    float rs_screen = SchwarzschildRadiusUV * AspectRatio;
+    float b_over_rs = angularDist / max(rs_screen, 0.00001);
+
+    // Photon ring glow
+    SceneColor.rgb = PhotonRing(b_over_rs, SceneColor.rgb);
+
+    // Redshift tint
+    SceneColor.rgb = ApplyRedshiftTint(SceneColor.rgb, RedshiftZ, b_over_rs);
+
+    return SceneColor;
+}

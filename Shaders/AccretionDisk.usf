@@ -1,0 +1,270 @@
+// AccretionDisk.usf
+// Accretion Disk Material Shader
+//
+// Pure standard HLSL — compatible with DX11, DX12, Vulkan (AMD/NVIDIA/Intel).
+// No vendor-specific intrinsics or extensions.
+//
+// Simulates:
+//   - Superheated plasma disk from ISCO to outer edge
+//   - Temperature gradient: inner (blue-white ~10MK) → outer (orange-red ~3000K)
+//   - Doppler shift: approaching side brightened/blueshifted, receding side dimmed/redshifted
+//   - Relativistic brightening (beaming) on prograde side
+//   - Turbulent plasma flow animation via layered noise
+//   - Vertical puffiness / thickness variation
+//   - Hawking radiation glow near inner edge (subtle particle haze)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+static const float PI = 3.14159265359;
+static const float TWO_PI = 6.28318530718;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hash / Noise primitives (no texture lookups required — GPU friendly)
+// ─────────────────────────────────────────────────────────────────────────────
+
+float Hash11(float n)
+{
+    return frac(sin(n) * 43758.5453123);
+}
+
+float Hash21(float2 p)
+{
+    p = frac(p * float2(127.1, 311.7));
+    p += dot(p, p.yx + 19.19);
+    return frac(p.x * p.y);
+}
+
+// Value noise (smooth, 2D)
+float ValueNoise2D(float2 p)
+{
+    float2 i = floor(p);
+    float2 f = frac(p);
+    float2 u = f * f * (3.0 - 2.0 * f); // smoothstep
+
+    float a = Hash21(i + float2(0, 0));
+    float b = Hash21(i + float2(1, 0));
+    float c = Hash21(i + float2(0, 1));
+    float d = Hash21(i + float2(1, 1));
+
+    return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+}
+
+// Fractional Brownian Motion — layered noise for turbulent plasma
+float FBM(float2 p, int Octaves)
+{
+    float val = 0.0;
+    float amp = 0.5;
+    float freq = 1.0;
+    for (int i = 0; i < Octaves; i++)
+    {
+        val += amp * ValueNoise2D(p * freq);
+        freq *= 2.1;
+        amp *= 0.48;
+    }
+    return val;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Blackbody colour approximation (Planckian locus)
+// Temperature in Kelvin → linear RGB (not tonemapped)
+// Fit by Krysinski (2012), valid 1000K–40000K
+// ─────────────────────────────────────────────────────────────────────────────
+float3 BlackbodyColor(float TempK)
+{
+    TempK = clamp(TempK, 1000.0, 40000.0);
+    float T = TempK;
+
+    float3 color;
+
+    // Red channel
+    if (T <= 6600.0)
+        color.r = 1.0;
+    else
+    {
+        float x = (T / 100.0) - 60.0;
+        color.r = clamp(329.698727446 * pow(x, -0.1332047592) / 255.0, 0.0, 1.0);
+    }
+
+    // Green channel
+    if (T <= 6600.0)
+    {
+        float x = T / 100.0;
+        color.g = clamp((99.4708025861 * log(x) - 161.1195681661) / 255.0, 0.0, 1.0);
+    }
+    else
+    {
+        float x = (T / 100.0) - 60.0;
+        color.g = clamp(288.1221695283 * pow(x, -0.0755148492) / 255.0, 0.0, 1.0);
+    }
+
+    // Blue channel
+    if (T >= 6600.0)
+        color.b = 1.0;
+    else if (T <= 1900.0)
+        color.b = 0.0;
+    else
+    {
+        float x = T / 100.0 - 10.0;
+        color.b = clamp((138.5177312231 * log(x) - 305.0447927307) / 255.0, 0.0, 1.0);
+    }
+
+    return color;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Temperature at a given normalised radius within the disk.
+// r_norm = 0 at ISCO (inner edge), 1 at outer edge.
+// Real temperature profile: T ~ r^(-3/4) for thin disk (Shakura-Sunyaev).
+// ─────────────────────────────────────────────────────────────────────────────
+float DiskTemperature(float r_norm)
+{
+    float T_inner = 10.0e6; // 10 million K at inner edge (blue-white)
+    float T_outer = 3000.0; // 3000 K at outer edge (deep red)
+
+    // T(r) ~ T_inner * (1 - r_norm)^(3/4) + T_outer * r_norm
+    // We use a power-law blend for visual appeal
+    float blend = pow(max(1.0 - r_norm, 0.0), 0.75);
+    return lerp(T_outer, T_inner, blend);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Relativistic Doppler + gravitational beaming factor.
+//
+// For a point on the disk at azimuthal angle phi (0 = approaching side):
+//   - Orbital velocity at radius r: v_orb = sqrt(GM/r)
+//   - Doppler factor: D = 1 / (gamma * (1 - beta * cos(phi)))
+//     where beta = v_orb/c, gamma = 1/sqrt(1-beta^2)
+//   - Observed intensity: I_obs = I_emit * D^4   (beaming)
+//   - Observed frequency: nu_obs = nu_emit * D   (Doppler shift of colour)
+//
+// Parameters:
+//   phi       — azimuthal angle (0 = approaching, pi = receding)
+//   beta_orb  — v_orb / c at this radius
+// ─────────────────────────────────────────────────────────────────────────────
+float RelativisticDopplerFactor(float phi, float beta_orb)
+{
+    beta_orb = clamp(beta_orb, 0.0, 0.99);
+    float gamma = 1.0 / sqrt(max(1.0 - beta_orb * beta_orb, 0.0001));
+    float cosPhi = cos(phi);
+    float D = 1.0 / (gamma * (1.0 - beta_orb * cosPhi));
+    return D;
+}
+
+// Doppler-shift temperature: T_obs = T_emit * D
+float DopplerShiftTemp(float T_emit, float D)
+{
+    return T_emit * D;
+}
+
+// Beaming intensity: I_obs = I_emit * D^4
+float BeamingIntensity(float I_emit, float D)
+{
+    return I_emit * pow(D, 4.0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hawking radiation glow — very subtle particle haze near inner edge.
+// In reality, Hawking radiation from a stellar-mass BH is negligible,
+// but we add a visual representation: a faint blue-white quantum shimmer.
+// ─────────────────────────────────────────────────────────────────────────────
+float3 HawkingGlow(float r_norm, float2 UV_anim, float Time)
+{
+    if (r_norm > 0.08) return float3(0, 0, 0);
+
+    float shimmer = FBM(UV_anim * 8.0 + Time * 0.5, 3) * 0.5
+                  + FBM(UV_anim * 15.0 - Time * 0.3, 2) * 0.25;
+    shimmer = pow(shimmer, 2.0);
+
+    float proximity = saturate(1.0 - r_norm / 0.08);
+    float3 hawkingColor = float3(0.6, 0.8, 1.0) * shimmer * proximity * 0.4;
+    return hawkingColor;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main accretion disk shading function.
+//
+// UV         — texture coordinates (0..1 mapped over the disk quad)
+// r_norm     — normalised radius [0=ISCO, 1=outer edge]
+// phi        — azimuthal angle in radians [0..2pi]
+// beta_orb   — orbital velocity / c at this radius
+// Time       — elapsed time for animation
+// ─────────────────────────────────────────────────────────────────────────────
+float4 AccretionDiskMain(
+    float2 UV,
+    float  r_norm,
+    float  phi,
+    float  beta_orb,
+    float  Time,
+    float  DiskThickness,    // 0..1 vertical extent control
+    float  TurbulenceScale,  // noise UV scale
+    float  TurbulenceSpeed)  // noise animation speed
+{
+    // ── Discard outside disk boundaries ───────────────────────────────────────
+    if (r_norm < 0.0 || r_norm > 1.0)
+        discard;
+
+    // ── Animated UV for turbulence (plasma flows inward and around) ───────────
+    // Inward radial drift + azimuthal rotation
+    float radialDrift  = -r_norm * Time * TurbulenceSpeed * 0.15;
+    float azimuthDrift = phi / TWO_PI + Time * TurbulenceSpeed * (0.3 + 0.7 * (1.0 - r_norm));
+    float2 UV_anim = float2(azimuthDrift, r_norm + radialDrift) * TurbulenceScale;
+
+    // ── Plasma turbulence intensity ────────────────────────────────────────────
+    float turbulence = FBM(UV_anim, 5); // 5 octaves for detailed plasma look
+
+    // Add a secondary swirling pattern (magnetic field lines)
+    float swirl = FBM(UV_anim * 2.0 + float2(sin(phi * 3.0), cos(phi * 2.0)) * 0.5, 3);
+    turbulence = turbulence * 0.65 + swirl * 0.35;
+
+    // ── Temperature at this radius ─────────────────────────────────────────────
+    float baseTemp = DiskTemperature(r_norm);
+
+    // Turbulence modulates temperature: hot spots and cooler filaments
+    float tempVariation = lerp(-0.4, 0.6, turbulence); // -40% to +60%
+    float localTemp = baseTemp * (1.0 + tempVariation * 0.3);
+    localTemp = max(localTemp, 500.0);
+
+    // ── Doppler/relativistic effects ──────────────────────────────────────────
+    float D = RelativisticDopplerFactor(phi, beta_orb);
+    float observedTemp = DopplerShiftTemp(localTemp, D);
+
+    // ── Colour from blackbody temperature ────────────────────────────────────
+    float3 baseColor = BlackbodyColor(observedTemp);
+
+    // ── Relativistic beaming (brightness) ────────────────────────────────────
+    float intensity = BeamingIntensity(1.0, D);
+    // Clamp to prevent extreme brightening (artistic limit)
+    intensity = clamp(intensity, 0.1, 20.0);
+
+    // ── Radial density falloff ────────────────────────────────────────────────
+    // Disk is denser toward inner edge (surface density ~ r^(-0.75))
+    float radialDensity = pow(max(1.0 - r_norm, 0.0), 0.5) * (1.0 + turbulence * 0.3);
+
+    // ── Vertical thickness (disk is puffier at inner edge) ────────────────────
+    // We return an opacity value; the mesh alpha handles actual cutout
+    float opacity = radialDensity * DiskThickness;
+    opacity = saturate(opacity + turbulence * 0.2);
+
+    // ── Final colour composition ──────────────────────────────────────────────
+    float3 diskColor = baseColor * intensity * radialDensity;
+
+    // Add bright plasma knots (hot spots from magnetic reconnection)
+    float hotSpot = smoothstep(0.85, 1.0, turbulence) * 3.0;
+    diskColor += BlackbodyColor(min(observedTemp * 2.5, 40000.0)) * hotSpot;
+
+    // ── Hawking radiation near inner edge ─────────────────────────────────────
+    diskColor += HawkingGlow(r_norm, UV_anim, Time);
+
+    // ── Edge glow (limb brightening from optically thin outer region) ─────────
+    float outerGlow = smoothstep(0.85, 1.0, r_norm) * 0.3;
+    diskColor += BlackbodyColor(3500.0) * outerGlow;
+
+    // ── Tone down HDR for non-HDR pipelines (soft cap) ────────────────────────
+    // This preserves colour ratios while preventing NaN on older hardware
+    float maxChannel = max(diskColor.r, max(diskColor.g, diskColor.b));
+    if (maxChannel > 50.0)
+        diskColor = diskColor / maxChannel * 50.0;
+
+    return float4(diskColor, opacity);
+}

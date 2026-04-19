@@ -1,0 +1,315 @@
+// StarField.usf
+// Procedural Star Field Skybox Shader
+//
+// Pure standard HLSL — DX11 / DX12 / Vulkan compatible.
+// No vendor-specific extensions.
+//
+// Features:
+//   - Procedural 3D star field (no texture lookup required, fully GPU-generated)
+//   - Stars distributed on a sphere with Milky Way density band
+//   - Spectral colours (O/B/A/F/G/K/M classification)
+//   - Twinkle animation (atmospheric scintillation)
+//   - Relativistic aberration (stars bunch toward direction of travel)
+//   - Gravitational lensing colour shift integration hook
+//   - Nebula background clouds (FBM-based volumetric approximation)
+//   - Cosmic microwave background (uniform 2.7K thermal noise — extremely subtle)
+
+static const float PI  = 3.14159265359;
+static const float TAU = 6.28318530718;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hash functions
+// ─────────────────────────────────────────────────────────────────────────────
+float Hash1(float n) { return frac(sin(n) * 43758.5453); }
+float Hash1F(float3 p) { return frac(sin(dot(p, float3(127.1, 311.7, 74.7))) * 43758.5453); }
+float3 Hash3(float3 p)
+{
+    p = frac(p * float3(0.1031, 0.1030, 0.0973));
+    p += dot(p, p.yxz + 33.33);
+    return frac((p.xxy + p.yxx) * p.zyx);
+}
+
+float ValueNoise3(float3 p)
+{
+    float3 i = floor(p);
+    float3 f = frac(p);
+    float3 u = f * f * (3.0 - 2.0 * f);
+
+    return lerp(lerp(lerp(Hash1F(i + float3(0,0,0)), Hash1F(i + float3(1,0,0)), u.x),
+                     lerp(Hash1F(i + float3(0,1,0)), Hash1F(i + float3(1,1,0)), u.x), u.y),
+                lerp(lerp(Hash1F(i + float3(0,0,1)), Hash1F(i + float3(1,0,1)), u.x),
+                     lerp(Hash1F(i + float3(0,1,1)), Hash1F(i + float3(1,1,1)), u.x), u.y), u.z);
+}
+
+float FBM3(float3 p, int oct)
+{
+    float v = 0.0, a = 0.5, f = 1.0;
+    for (int i = 0; i < oct; i++) { v += a * ValueNoise3(p * f); f *= 2.1; a *= 0.5; }
+    return v;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spectral class colour (0=O..6=M)
+// ─────────────────────────────────────────────────────────────────────────────
+float3 SpectralColor(float classIndex)
+{
+    // classIndex 0..6 interpolated
+    float3 colors[7] = {
+        float3(0.64, 0.70, 1.00), // O: blue-violet ~30000K
+        float3(0.70, 0.80, 1.00), // B: blue-white  ~20000K
+        float3(0.88, 0.93, 1.00), // A: white-blue  ~8500K
+        float3(1.00, 0.97, 0.85), // F: yellow-white~6500K
+        float3(1.00, 0.90, 0.60), // G: yellow      ~5700K
+        float3(1.00, 0.65, 0.30), // K: orange      ~4500K
+        float3(1.00, 0.25, 0.08)  // M: red         ~3200K
+    };
+    int   idx0 = clamp((int)classIndex, 0, 5);
+    int   idx1 = idx0 + 1;
+    float t    = frac(classIndex);
+    return lerp(colors[idx0], colors[idx1], t);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Relativistic aberration.
+// Converts a view direction to the aberrated direction seen from a moving ship.
+// Formula: cos(theta') = (cos(theta) + beta) / (1 + beta * cos(theta))
+// ─────────────────────────────────────────────────────────────────────────────
+float3 AberratDirection(float3 ViewDir, float3 ShipVelocity, float C_value)
+{
+    float speed = length(ShipVelocity);
+    if (speed < 1.0) return ViewDir;
+
+    float beta = clamp(speed / C_value, 0.0, 0.9999);
+    float3 vHat = ShipVelocity / speed;
+
+    float cosTheta = dot(ViewDir, vHat);
+    float cosThetaPrime = (cosTheta + beta) / (1.0 + beta * cosTheta);
+    cosThetaPrime = clamp(cosThetaPrime, -1.0, 1.0);
+
+    float3 Transverse = ViewDir - vHat * cosTheta;
+    float sinTheta = length(Transverse);
+    if (sinTheta < 1e-7) return cosThetaPrime > 0.0 ? vHat : -vHat;
+
+    float3 TransHat = Transverse / sinTheta;
+    float sinThetaPrime = sqrt(max(0.0, 1.0 - cosThetaPrime * cosThetaPrime));
+
+    return normalize(vHat * cosThetaPrime + TransHat * sinThetaPrime);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Star field sampling.
+// Distributes stars on the unit sphere using a 3D cell hash.
+// Each "cell" in 3D direction space may contain one star.
+// ─────────────────────────────────────────────────────────────────────────────
+struct StarResult
+{
+    float3 Color;
+    float  Brightness;
+    float  Distance; // angular distance to nearest star centre
+};
+
+StarResult SampleStarField(float3 ViewDir, float StarDensity, float Time)
+{
+    StarResult result;
+    result.Color = float3(0, 0, 0);
+    result.Brightness = 0.0;
+    result.Distance = 1e10;
+
+    // Map view direction to spherical coords, then to a 2D tile grid
+    // (using cube-face-like projection for uniform distribution)
+    float3 absDir = abs(ViewDir);
+    float maxC = max(absDir.x, max(absDir.y, absDir.z));
+    float3 projDir = ViewDir / maxC;
+
+    // Create a grid in the dominant-face projected space
+    float2 faceUV;
+    float  faceID;
+    if (maxC == absDir.x) { faceUV = projDir.yz; faceID = ViewDir.x > 0 ? 0.0 : 1.0; }
+    else if (maxC == absDir.y) { faceUV = projDir.xz; faceID = ViewDir.y > 0 ? 2.0 : 3.0; }
+    else                       { faceUV = projDir.xy; faceID = ViewDir.z > 0 ? 4.0 : 5.0; }
+
+    faceUV = faceUV * 0.5 + 0.5; // [0,1]
+    float gridScale = StarDensity; // higher = more stars
+    float2 gridPos = faceUV * gridScale;
+    int2 cell = int2(floor(gridPos));
+
+    // Check 3x3 neighborhood for stars in adjacent cells
+    for (int dx = -1; dx <= 1; dx++)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            int2 neighborCell = cell + int2(dx, dy);
+            float cellSeed = Hash1(neighborCell.x * 1000.0 + neighborCell.y + faceID * 100000.0);
+
+            // Does this cell contain a star? (threshold controls density)
+            float starThreshold = 0.45; // ~55% of cells have a star
+            if (cellSeed > starThreshold)
+            {
+                // Star position within cell (jitter)
+                float2 jitter = Hash3(float3(neighborCell, faceID + 1.0)).xy;
+                float2 starPosInGrid = (float2(neighborCell) + jitter) / gridScale;
+
+                // Convert back to 3D direction
+                float2 starFaceUV = starPosInGrid * 2.0 - 1.0; // [-1,1]
+                float3 starDir;
+                if (faceID < 1.5)       starDir = normalize(float3(faceID < 0.5 ? 1.0 : -1.0, starFaceUV.x, starFaceUV.y));
+                else if (faceID < 3.5)  starDir = normalize(float3(starFaceUV.x, faceID < 2.5 ? 1.0 : -1.0, starFaceUV.y));
+                else                    starDir = normalize(float3(starFaceUV.x, starFaceUV.y, faceID < 4.5 ? 1.0 : -1.0));
+
+                float angDist = acos(clamp(dot(ViewDir, starDir), -1.0, 1.0));
+
+                // Star spectral class from second hash
+                float classSeed = Hash1(cellSeed * 137.3 + 5.7);
+                // Weighted spectral distribution (M > K > G > F > A > B > O)
+                float classIndex;
+                if      (classSeed < 0.455) classIndex = lerp(6.0, 6.9, frac(classSeed / 0.455));
+                else if (classSeed < 0.576) classIndex = lerp(5.0, 5.9, frac((classSeed - 0.455) / 0.121));
+                else if (classSeed < 0.652) classIndex = lerp(4.0, 4.9, frac((classSeed - 0.576) / 0.076));
+                else if (classSeed < 0.712) classIndex = lerp(3.0, 3.9, frac((classSeed - 0.652) / 0.060));
+                else if (classSeed < 0.772) classIndex = lerp(2.0, 2.9, frac((classSeed - 0.712) / 0.060));
+                else if (classSeed < 0.802) classIndex = lerp(1.0, 1.9, frac((classSeed - 0.772) / 0.030));
+                else                        classIndex = lerp(0.0, 0.9, frac((classSeed - 0.802) / 0.198));
+
+                float3 starColor = SpectralColor(classIndex);
+
+                // Magnitude / brightness
+                float magSeed = Hash1(cellSeed * 99.1 + 3.3);
+                float magnitude = 0.1 + magSeed * 0.9; // 0.1 to 1.0
+
+                // O/B stars are brighter intrinsically
+                magnitude *= lerp(2.0, 0.4, classIndex / 6.0);
+
+                // Twinkle (simulates atmospheric scintillation — subtle in space,
+                // but we use a tiny amount for visual polish)
+                float twinkle = 1.0 + 0.04 * sin(Time * (3.0 + cellSeed * 5.0)
+                    + cellSeed * 100.0) * (1.0 - classIndex / 10.0);
+                magnitude *= twinkle;
+
+                if (angDist < result.Distance)
+                {
+                    result.Distance = angDist;
+                    result.Color = starColor * magnitude;
+                    result.Brightness = magnitude;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Milky Way density band (Gaussian band centred on equatorial plane)
+// ─────────────────────────────────────────────────────────────────────────────
+float MilkyWayDensity(float3 ViewDir)
+{
+    // Milky Way plane ~ ViewDir.y = 0 (simplified galactic plane)
+    float galacticLat = asin(clamp(ViewDir.y, -1.0, 1.0));
+    float bandWidth = 0.22; // radians (~13°)
+    float density = exp(-galacticLat * galacticLat / (2.0 * bandWidth * bandWidth));
+
+    // Add FBM structure to break up the band into cloud-like regions
+    float3 nebP = ViewDir * 3.5;
+    float nebula = FBM3(nebP, 5) * 0.7 + FBM3(nebP * 2.0, 3) * 0.3;
+    density *= (0.3 + 0.7 * nebula);
+
+    return density;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Nebula colouring (emission + reflection nebulae)
+// ─────────────────────────────────────────────────────────────────────────────
+float3 NebulaColor(float3 ViewDir, float Time)
+{
+    float3 p = ViewDir * 4.0 + float3(0.3, 0.1, 0.2);
+    float n = FBM3(p + Time * 0.002, 6);
+    float n2 = FBM3(p * 1.7 + float3(5.0, 2.0, 3.0), 4);
+
+    // Emission nebula: warm colours (Hα = red, OIII = teal)
+    float3 emission = lerp(
+        float3(0.9, 0.15, 0.2),   // Hα red
+        float3(0.1, 0.8, 0.7),    // OIII teal
+        n2
+    );
+
+    // Reflection nebula: blue tint
+    float3 reflection = float3(0.2, 0.3, 0.9);
+    float3 nebulaColor = lerp(emission, reflection, 0.2);
+
+    return nebulaColor * n * 0.25; // subtle
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CMB — Cosmic Microwave Background (uniform 2.7K blackbody)
+// Extremely faint, nearly uniform, with tiny anisotropies
+// ─────────────────────────────────────────────────────────────────────────────
+float3 CMBColor(float3 ViewDir, float Time)
+{
+    // 2.7K blackbody → deep red, imperceptible to human eye without enhancement
+    // We render as a very faint uniform warm haze
+    float anisotropy = FBM3(ViewDir * 50.0, 2) * 0.001; // ΔT/T ~ 10^-5 in reality
+    float3 cmb = float3(0.002, 0.001, 0.0) + anisotropy * float3(0.001, 0.0005, 0.0);
+    return cmb;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main star field function.
+// ─────────────────────────────────────────────────────────────────────────────
+float4 StarFieldMain(
+    float3 ViewDir,          // normalised view direction in world space
+    float3 ShipVelocity,     // ship velocity in m/s
+    float  Time,             // elapsed time
+    float  StarDensity,      // grid density (~100 for rich field)
+    float  AngularStarSize,  // angular radius for star discs (radians)
+    float  C_value)          // speed of light in same units as ShipVelocity
+{
+    // Apply relativistic aberration to view direction
+    float3 AberratedDir = AberratDirection(normalize(ViewDir), ShipVelocity, C_value);
+
+    float3 finalColor = float3(0.0, 0.0, 0.0);
+
+    // ── CMB base ──────────────────────────────────────────────────────────────
+    finalColor += CMBColor(AberratedDir, Time);
+
+    // ── Milky Way band ────────────────────────────────────────────────────────
+    float mwDensity = MilkyWayDensity(AberratedDir);
+    float3 mwColor = lerp(
+        float3(0.05, 0.07, 0.15),  // dark: blue-grey haze
+        float3(0.25, 0.22, 0.18),  // bright: warm yellow core
+        mwDensity
+    ) * mwDensity;
+    finalColor += mwColor;
+
+    // ── Nebulae ────────────────────────────────────────────────────────────────
+    finalColor += NebulaColor(AberratedDir, Time);
+
+    // ── Stars ─────────────────────────────────────────────────────────────────
+    StarResult star = SampleStarField(AberratedDir, StarDensity, Time);
+
+    // Render star as a point disc with Gaussian falloff
+    float starRadius = AngularStarSize;
+    float disc = exp(-star.Distance * star.Distance / (2.0 * starRadius * starRadius));
+    // Diffraction spikes (very subtle cross pattern for bright stars)
+    float spikeBrightness = max(0.0, star.Brightness - 0.5);
+    float spikeH = exp(-abs(AberratedDir.y) * 200.0) * exp(-abs(star.Distance - 0.0) * 50.0);
+    float spikeV = exp(-abs(AberratedDir.x) * 200.0) * exp(-abs(star.Distance - 0.0) * 50.0);
+    float spikes = (spikeH + spikeV) * spikeBrightness * 0.15;
+
+    finalColor += star.Color * (disc + spikes);
+
+    // ── Relativistic colour shift ─────────────────────────────────────────────
+    // Stars ahead appear blueshifted, behind redshifted (Doppler)
+    float beta = length(ShipVelocity) / C_value;
+    if (beta > 0.01)
+    {
+        float3 vHat = normalize(ShipVelocity);
+        float cosA = dot(AberratedDir, vHat);
+        // Simple Doppler tint: blueshift forward (cosA > 0), redshift backward
+        float blueShift = saturate(cosA * beta * 2.0);
+        float redShift  = saturate(-cosA * beta * 2.0);
+        finalColor.b = saturate(finalColor.b + blueShift * 0.3);
+        finalColor.r = saturate(finalColor.r + redShift * 0.3);
+        finalColor.g = saturate(finalColor.g - (blueShift + redShift) * 0.1);
+    }
+
+    return float4(finalColor, 1.0);
+}
